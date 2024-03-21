@@ -15,12 +15,12 @@ def create_directory_if_not_exists(directory_path):
 
 
 # 1. Merge data
-def merge_vector_layers(layer_paths_1, base_output_path, output_file_name_1, crs='EPSG:2180'):
+def merge_vector_layers(layer_paths, base_output_path, output_file_name, crs='EPSG:2180'):
     # Merges given vector layers into a single layer.
 
-    output_path_1 = os.path.join(base_output_path, output_file_name_1)
+    output_path_1 = os.path.join(base_output_path, output_file_name)
     processing.run("native:mergevectorlayers", {
-        'LAYERS': layer_paths_1,
+        'LAYERS': layer_paths,
         'CRS': QgsCoordinateReferenceSystem(crs),
         'OUTPUT': output_path_1})
 
@@ -28,19 +28,19 @@ def merge_vector_layers(layer_paths_1, base_output_path, output_file_name_1, crs
 
 
 # 2. Mask of sunlight data
-def process_sunlight_data(months_2, input_folder_2, output_folder, mask_shapefile_2):
+def process_sunlight_data(months, input_folder, output_folder, mask_shapefile):
     """
     Processes sunlight data files for each month by clipping them with a mask layer.
     """
 
     create_directory_if_not_exists(output_folder)
-    for month in months_2:
-        input_file = f"{input_folder_2}/map_{month}.tif"
+    for month in months:
+        input_file = f"{input_folder}/map_{month}.tif"
         output_file = f"{output_folder}/MAP_{month.upper()}_CLIPPED.tif"
 
         processing.run("gdal:cliprasterbymasklayer", {
             'INPUT': input_file,
-            'MASK': mask_shapefile_2,
+            'MASK': mask_shapefile,
             'SOURCE_CRS': None, 'TARGET_CRS': None,
             'TARGET_EXTENT': None, 'NODATA': None,
             'ALPHA_BAND': False, 'CROP_TO_CUTLINE': True,
@@ -55,16 +55,16 @@ def process_sunlight_data(months_2, input_folder_2, output_folder, mask_shapefil
 
 
 # 3 Terrain aspect
-def calculate_terrain_aspect(input_folder_3, input_file_name_3, output_folder_3, output_file_name_3):
+def calculate_terrain_aspect(input_folder, input_file_name, output_folder, output_file_name):
     """
     Calculates the aspect of the terrain from an input raster file and saves the result to an output file.
     """
     # Input path = path + file
-    input_path = os.path.join(input_folder_3, input_file_name_3)
-    create_directory_if_not_exists(output_folder_3)
+    input_path = os.path.join(input_folder, input_file_name)
+    create_directory_if_not_exists(output_folder)
 
     # output data path director
-    output_path_3 = os.path.join(output_folder_3, output_file_name_3)
+    output_path = os.path.join(output_folder, output_file_name)
 
     processing.run("gdal:aspect", {
         'INPUT': input_path,
@@ -75,14 +75,14 @@ def calculate_terrain_aspect(input_folder_3, input_file_name_3, output_folder_3,
         'ZEVENBERGEN': False,
         'OPTIONS': '',
         'EXTRA': '',
-        'OUTPUT': output_path_3
+        'OUTPUT': output_path
     })
 
     print("Terrain aspect calculation completed.")
 
 
 # 4 Convert terrain aspect to vector data
-def raster_to_vector_conversion(raster_input, output_folder_raster, output_raster_file, output_vector_folder,
+def raster_to_vector_conversion(raster_input, output_folder_raster, output_raster_filename, output_vector_folder,
                                 output_vector_file):
     """
     Converts a raster layer based on specific terrain exposure conditions to a vector layer.
@@ -92,7 +92,7 @@ def raster_to_vector_conversion(raster_input, output_folder_raster, output_raste
         create_directory_if_not_exists(folder)
 
     # Full path to the output raster file
-    output_raster = os.path.join(output_folder_raster, output_raster_file)
+    output_raster = os.path.join(output_folder_raster, output_raster_filename)
 
     # Condition for southern, southeast, and southwest terrain exposures
     expression = '(\"{0}@1\" > 215 AND \"{0}@1\" < 315) * 1 + (\"{0}@1\" <= 215 OR \"{0}@1\" >= 315) * 0'.format(
@@ -125,18 +125,18 @@ def raster_to_vector_conversion(raster_input, output_folder_raster, output_raste
 
 
 # 5. Filter by balue
-def filter_values_condition_1(filter_value_5, base_input_path_5, input_filename_5, base_output_path_5, output_file_5):
+def filter_values_condition_1(filter_value, base_input_path, input_filename, base_output_path, output_file):
     # path
-    input_path_5 = os.path.join(base_input_path_5, input_filename_5)
-    output_path_5 = os.path.join(base_output_path_5, output_file_5)
+    input_path_5 = os.path.join(base_input_path, input_filename)
+    output_path_5 = os.path.join(base_output_path, output_file)
     # process
     processing.run("native:extractbyexpression", {
         'INPUT': input_path_5,
-        'EXPRESSION': filter_value_5,
+        'EXPRESSION': filter_value,
         'OUTPUT': output_path_5
     })
 
-    print("5. Filtrowanie wartości spełniających warunek 1 zakończone.")
+    print("Filtering for values that meet condition 1 is complete")
 
 
 # 6 Intersection 2 layers
@@ -182,7 +182,7 @@ def calculate_area(base_output_path, input_file, output_file):
         'FORMULA': ' $area',
         'OUTPUT': output_path_8
     })
-    print("8. Obliczenie powierzchni na rozbitych elementach zakończone.")
+    print("Obliczenie powierzchni na rozbitych elementach zakończone.")
 
 
 # 9. Select by area
@@ -199,9 +199,9 @@ def filter_areas(base_output_path, input_file, output_file, variable):
 
 
 # 10. Add id column
-def add_id_column_to_filtered_data(base_output_path, input_file, output_file_10):
+def add_id(base_output_path, input_file, output_file):
     input_path_10 = os.path.join(base_output_path, input_file)
-    output_path_10 = os.path.join(base_output_path, output_file_10)
+    output_path_10 = os.path.join(base_output_path, output_file)
 
     processing.run("native:fieldcalculator", {
         'INPUT': input_path_10,
@@ -290,21 +290,6 @@ def filter_area_distance(base_output_path, variable, column_distance_name, layer
                   field_to_rename='distance', output_file_name=output_path)
 
 
-# 17. Join road distance
-def join_attributes_with_road_distances(base_output_path, output_file_name_16, ):
-    input_path = os.path.join(base_output_path, "15_ZMIANA_NAZWY_KOLUMNY_ODLEGLOSCI.shp")
-    distances_path = os.path.join(base_output_path, "16_ODLEGLOSC_DO_DROG.shp")
-    output_path = os.path.join(base_output_path, "17_POWIERZCHNIE_Z_ODLEGLOSCIAMI_DO_DROG.shp")
-
-    processing.run("native:joinattributestable", {
-        'INPUT': input_path,
-        'FIELD': 'ID',
-        'INPUT_2': distances_path,
-        'FIELD_2': 'ID',
-        'FIELDS_TO_COPY': ['distance'],
-        'OUTPUT': output_path
-    })
-    print("17. Połączenie atrybutów z odległościami do dróg zakończone.")
 
 
 # 18
