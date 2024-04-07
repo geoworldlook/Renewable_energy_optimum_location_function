@@ -9,28 +9,47 @@ from Renewable_energy_optimum_location_function import *
 
 #### WIND FARM PATH
 base_input_path = "D:/GEOWORLDLOOK/OZE/PILOT/TEST_SKRYPTU"
-base_output_path = "D:/GEOWORLDLOOK/OZE/PILOT/WIND_FARM"
+base_output_path = "D:/GEOWORLDLOOK/OZE/PILOT/Step_2_Wind_Farm"
 
+
+#create_output_folder
+create_directory_if_not_exists(base_output_path)
 
 #1 Tworzenie buforu
 
 distance = 800
-input_path = 'D:/GEOWORLDLOOK/OZE/PILOT/BDOT/PL.PZGiK.335.BDOT10k.20_OT_BUBD_A.shp'
+input_path = 'D:/GEOWORLDLOOK/OZE/PILOT/Data/BDOT/PL.PZGiK.335.BDOT10k.20_OT_BUBD_A.shp'
 output_file_buffer = 'WIND_FARM_BUFFOR.shp'
 
 buffer(base_output_path = base_output_path, input_path = input_path, output_file=output_file_buffer,distance=distance)
 #2 Split area
 
-input_file_potencial_area='merge_layers.shp'
-output_file_name_2 = "MERGE_ROZBITE_NA_POJEDYNCZE.shp"
+#3 Define layers which use to looking for photovoltaic areas
+#Topographic Object Database
 
-split_into_single_parts(base_output_path = base_output_path, input_file_name=input_file_potencial_area, output_file_name = output_file_name_2)
+layer_paths = [
+    'D:/GEOWORLDLOOK/OZE/PILOT/Data/BDOT/PL.PZGiK.335.BDOT10k.20_OT_PTGN_A.shp',
+    'D:/GEOWORLDLOOK/OZE/PILOT/Data/BDOT/PL.PZGiK.335.BDOT10k.20_OT_PTRK_A.shp',
+    'D:/GEOWORLDLOOK/OZE/PILOT/Data/BDOT/PL.PZGiK.335.BDOT10k.20_OT_PTTR_A_ROSLINOSC_TRAWIASTA.shp'
+]
+#1 Merge layers potencial area
+#Output file name
+
+
+merge_areas = 'Merge_layers_area.shp'
+merge_vector_layers(layer_paths = layer_paths,base_output_path = base_output_path,output_file_name = merge_areas)
+
+
+input_file_potencial_area = merge_areas
+output_file_name_merge_area_split = "merge_area_split.shp"
+
+split_into_single_parts(base_output_path = base_output_path, input_file_name=input_file_potencial_area, output_file_name = output_file_name_merge_area_split)
 
 
 
 #3 Calculate area
 output_file_3 = "calculate_area_split.shp"
-calculate_area(base_output_path = base_output_path, input_file = output_file_name_2, output_file =output_file_3)
+calculate_area(base_output_path = base_output_path, input_file = output_file_name_merge_area_split, output_file =output_file_3)
 
 
 #4 Filtr area above 10 000 m2
@@ -72,7 +91,7 @@ filter_areas(base_output_path=base_output_path, input_file=calculate_area_layer,
 
 #6 Add id to column to select by id in next steps
 wind_farm_area_id = 'wind_farm_area_id.shp'
-add_id_column_to_filtered_data(base_output_path,input_file = filter_area_layer,output_file_10 = wind_farm_area_id)
+add_id(base_output_path,input_file = filter_area_layer,output_file = wind_farm_area_id)
 
 
 #6 calculate distanse to power lines
@@ -92,8 +111,9 @@ join_attributes_with_distances(base_output_path = base_output_path,field_1 = fie
 
 #14 Filter area by parametr
 variable_wind_farm_line_distance = '"distance" < 800'
-wind_farm_area_with_distance_criterium = "wind_farm_area_with_distance_criterium.shp"
+wind_farm_area_with_distance_criterium = "windfarm_area.shp"
 column_distance_name = 'LINE_DISTANCE'
 filter_area_distance(base_output_path = base_output_path, variable = variable_wind_farm_line_distance,column_distance_name = column_distance_name
                      ,layer_to_filter = wind_farm_area_id_distance, output_file_name = wind_farm_area_with_distance_criterium)
 
+#15 Różnica z terenami zalewowymi

@@ -23,41 +23,14 @@ layer_paths = [
 ]
 #1 Merge layers
 #Output file name
-output_file_name_1 = 'Merge_layers_area.shp'
+
 
 merge_areas = 'Merge_layers_area.shp'
-
 merge_vector_layers(layer_paths = layer_paths,base_output_path = base_output_path,output_file_name = merge_areas)
 
-#2 Cut sunlight data base on mask for each month
-
-months = [
-        "january", "febuary", "march", "april",
-    "may", "june", "july", "august",
-    "september", "october", "november", "december"
-        ]
-
-# Paths to the input and output data folders
-input_folder = base_input_path + "/SURFACE_RADIATION_1991_2020/"
-
-output_folder = base_output_path + "/CLIP_RADIATION"
 
 
-###############
-#output_folder = "D:/GEOWORLDLOOK/OZE/PILOT/TEST_SCRIPT/TEST_CLIP_RADIATION/"
-
-# Mask shapefile path
-#############
-#mask_shapefile = "D:/GEOWORLDLOOK/OZE/PILOT/WARSTWY/PODLASKIE_SHP.shp"
-
-mask_shapefile = base_input_path + "/MASK_TO_CUT/PODLASKIE_SHP.shp"
-
-
-# Process sunlight data
-process_sunlight_data(months = months, input_folder= input_folder, output_folder = output_folder, mask_shapefile = mask_shapefile)
-
-
-#3 Terrain aspect
+#2 Terrain aspect
 
 # Input paths
 input_folder_aspect = base_input_path + "/NMT/"
@@ -72,7 +45,7 @@ calculate_terrain_aspect(input_folder = input_folder_aspect,input_file_name = in
                          output_folder = output_folder_aspect, output_file_name = output_file_aspect)
 
 
-#4 Convert terrain aspect to vector data
+#3 Convert terrain aspect to vector data
 
 
 output_folder_raster = base_output_path + "/EXPOSURE_WS_S_ES/"
@@ -86,7 +59,7 @@ raster_to_vector_conversion(raster_input = output_folder_aspect + output_file_as
                             , output_raster_filename = output_raster_file, output_vector_folder = output_vector_folder, output_vector_file=output_vector_file)
 
 
-#5 Filter value, where area fit to cryterium
+#4 Filter value, where area fit to cryterium
 filter_value = '"DN" = 1'
 
 output_file_filter = "EXPOSURE_VECTOR_TRUE.shp"
@@ -97,7 +70,7 @@ filter_values_condition_1(filter_value = filter_value, base_input_path= output_v
 
 
 
-#6 Select area fit to cryterium and to free area from bdot
+#5 Select area fit to cryterium and to free area from bdot
 
 input_filename = output_vector_file
 output_file_5 = output_file_filter
@@ -107,25 +80,25 @@ output_potencial_area = 'POTENCIAL_PHOTOVOLTAIC_AREA.shp'
 intersection_exposure_bdot(base_output_path = base_output_path ,base_layer = output_file_filter
                            ,overlay_layer=merge_areas, output_file_name = output_potencial_area)
 
-#7 Split to single parts
+#6 Split to single parts
 split_potencial_area = "SPLIT_POTENCIAL_AREA.shp"
 
 split_into_single_parts(base_output_path = base_output_path,input_file_name=output_potencial_area ,output_file_name = split_potencial_area)
 
-#8 calculate area
+#7 calculate area
 calculate_split_area= "calculate_split_area.shp"
 calculate_area(base_output_path = base_output_path ,input_file = split_potencial_area,output_file = calculate_split_area)
 
-#9 Select area more than value (individual parametr)
+#8 Select area more than value (individual parametr)
 filter_area_more_than = "filter_area_by_area_condition.shp"
 condition ='"AREA" > 20000'
 filter_areas(base_output_path = base_output_path,input_file = calculate_split_area,output_file = filter_area_more_than, variable = condition)
 
-#10 Add id to column to select by id in next steps
+#9 Add id to column to select by id in next steps
 add_id_to_file = "area_id.shp"
 add_id(base_output_path = base_output_path,input_file= filter_area_more_than ,output_file   = add_id_to_file)
 
-#11
+#10
 input_voltage_path_11 = base_input_path + "/BDOT/PL.PZGiK.335.BDOT10k.20_OT_SULN_L.shp"
 medium_power_line = "medium_power_line.shp"
 #11 select specific voltage lines

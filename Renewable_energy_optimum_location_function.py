@@ -400,3 +400,36 @@ def difference_between_layers(base_output_path, base_layer, overlay_layer, outpu
                        , 'GRID_SIZE': None})
 
 
+
+
+
+####STEP 3
+
+#1 vector to layer
+
+
+def process_tif_files(base_input_path, base_output_path, output_file_name, field_name, months):
+    create_directory_if_not_exists(base_output_path)
+    # Iterate through each month to find and process relevant .tif files
+    for month in months:
+        # Define the input file path pattern
+        file_pattern = f"MAP_{month.upper()}_CLIPPED.tif"
+
+        # Search for files that match the pattern in the base input directory
+        for file in os.listdir(base_input_path):
+            if file.endswith(".tif") and file_pattern in file:
+                input_file_path = os.path.join(base_input_path, file)
+
+                # Define the output file path
+                output_shapefile_path = os.path.join(base_output_path,f"{output_file_name}_{month}.shp")
+
+                # Run the processing tool
+                processing.run("gdal:polygonize", {
+                    'INPUT': input_file_path,
+                    'BAND': 1,
+                    'FIELD': field_name,
+                    'EIGHT_CONNECTEDNESS': False,
+                    'EXTRA': '',
+                    'OUTPUT': output_shapefile_path
+                })
+                print(f"Processed {file} for {month}.")
