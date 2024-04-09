@@ -294,6 +294,8 @@ def filter_area_distance(base_output_path, variable, column_distance_name, layer
 
 # 18
 def buffer(base_output_path, input_path, output_file, distance):
+
+    
     output_path = os.path.join(base_output_path, output_file)
     processing.run("native:buffer",
                    {'INPUT': input_path
@@ -403,9 +405,9 @@ def difference_between_layers(base_output_path, base_layer, overlay_layer, outpu
 
 
 
-####STEP 3
+##STEP 3##
 
-#1 vector to layer
+#1 raster to vector
 
 
 def process_tif_files(base_input_path, base_output_path, output_file_name, field_name, months):
@@ -433,3 +435,84 @@ def process_tif_files(base_input_path, base_output_path, output_file_name, field
                     'OUTPUT': output_shapefile_path
                 })
                 print(f"Processed {file} for {month}.")
+
+
+#2 intersection solar radiation and potencial photovoltaic area
+def solar_radiation_photovoltaic_area(base_output_path,photovoltaic_area_path,output_file_name):
+    import os
+
+    #create folder
+    support_folder = os.path.join(base_output_path, "support_solar_radiation_vector")
+    create_directory_if_not_exists(support_folder)
+
+    #months list
+    months = [
+        "january", "february", "march", "april",
+        "may", "june", "july", "august",
+        "september", "october", "november", "december"
+        ]
+    #loop for create for each month data from solar radiation vector
+    for index, month in enumerate(months, start=1):
+        #paths
+        input_support_file = os.path.join(base_output_path, f"solar_radiation_vector_{month}.shp")
+        output_support_file = os.path.join(support_folder,f"solar_radiation_vector_{month}.shp")
+
+
+        #intersection photovoltaic vector area with solar radiation data
+        processing.run("native:intersection"
+        , {'INPUT': photovoltaic_area_path
+        ,'OVERLAY': input_support_file
+        ,'INPUT_FIELDS':[]
+        ,'OVERLAY_FIELDS':['Solar_surf']
+        ,'OVERLAY_FIELDS_PREFIX':''
+        ,'OUTPUT':output_support_file
+        ,'GRID_SIZE':None})
+
+        #rename step
+        field_to_rename = 'Solar_surf'
+        new_name = f"{month}"
+        file_to_rename = f"solar_radiation_vector_{month}.shp"
+        output_file_name_rename = f"solar_radiation_{month}_rename.shp"
+
+        #function
+        rename_column(base_output_path=support_folder, file_to_rename=file_to_rename, field_to_rename=field_to_rename
+                      ,new_name=new_name, output_file_name=output_file_name_rename)
+
+        #create another files to stack all months to finaly file
+        input_support_file_index_2_12 = os.path.join(support_folder,f"solar_radiation_vector_{index - 1}.shp")
+        output_support_file_index = os.path.join(support_folder, f"solar_radiation_vector_{index}.shp")
+        output_finally_file = os.path.join(base_output_path,output_file_name)
+        output = os.path.join(support_folder,output_file_name_rename)
+
+        #conditions to select right first file, create support file and create finaly file
+        if index == 1:
+            processing.run("native:joinattributestable",
+                           {'INPUT': photovoltaic_area_path
+                            , 'FIELD': 'ID',
+                            'INPUT_2': output
+                            ,'FIELD_2': 'ID'
+                            , 'FIELDS_TO_COPY': [f"{month}"], 'METHOD': 1
+                            , 'DISCARD_NONMATCHING': True,
+                            'PREFIX': '',
+                            'OUTPUT':output_support_file_index})
+
+        elif index == 12:
+            processing.run("native:joinattributestable",
+                           {'INPUT': input_support_file_index_2_12
+                            , 'FIELD': 'ID',
+                            'INPUT_2': output
+                               , 'FIELD_2': 'ID'
+                               , 'FIELDS_TO_COPY': [f"{month}"], 'METHOD': 1
+                               , 'DISCARD_NONMATCHING': True,
+                            'PREFIX': '',
+                            'OUTPUT': output_finally_file})
+        else:
+            processing.run("native:joinattributestable",
+                           {'INPUT': input_support_file_index_2_12
+                               , 'FIELD': 'ID',
+                            'INPUT_2': output
+                               , 'FIELD_2': 'ID'
+                               , 'FIELDS_TO_COPY': [f"{month}"], 'METHOD': 1
+                               , 'DISCARD_NONMATCHING': True,
+                            'PREFIX': '',
+                            'OUTPUT': output_support_file_index})
