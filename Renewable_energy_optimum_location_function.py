@@ -18,9 +18,10 @@ def create_directory_if_not_exists(directory_path):
 def merge_vector_layers(layer_paths, base_output_path, output_file_name, crs='EPSG:2180'):
     # Merges given vector layers into a single layer.
 
+
     output_path_1 = os.path.join(base_output_path, output_file_name)
     processing.run("native:mergevectorlayers", {
-        'LAYERS': layer_paths,
+        'LAYERS': [layer_paths],
         'CRS': QgsCoordinateReferenceSystem(crs),
         'OUTPUT': output_path_1})
 
@@ -274,8 +275,8 @@ def rename_column(base_output_path, file_to_rename, field_to_rename, new_name, o
     print("15. Zmiana nazwy kolumny odległości zakończona.")
 
 
-def filter_area_distance(base_output_path, variable, column_distance_name, layer_to_filter, output_file_name):
-    filter_layer = 'filter_area_distance.shp'
+def filter_area_distance(base_output_path: object, variable: object, column_distance_name: object, layer_to_filter: object, output_file_name: object) -> object:
+
     input_path = os.path.join(base_output_path, layer_to_filter)
     output_filter = os.path.join(base_output_path, filter_layer)
     output_path = os.path.join(base_output_path, output_file_name)
@@ -438,7 +439,7 @@ def process_tif_files(base_input_path, base_output_path, output_file_name, field
 
 
 #2 intersection solar radiation and potencial photovoltaic area
-def solar_radiation_photovoltaic_area(base_output_path,photovoltaic_area_path,output_file_name):
+def solar_radiation_photovoltaic_area(base_output_path,photovoltaic_area_path,province, output_file_name):
     import os
 
     #create folder
@@ -451,11 +452,30 @@ def solar_radiation_photovoltaic_area(base_output_path,photovoltaic_area_path,ou
         "may", "june", "july", "august",
         "september", "october", "november", "december"
         ]
+
+    provinces = {
+        "02": ("dolnoslaskie", "337"),
+        "04": ("kujawsko_pomorskie", "994"),
+        "06": ("lubelskie", "3700"),
+        "08": ("lubuskie", "333"),
+        "10": ("lodzkie", "340"),
+        "12": ("malopolskie", "283"),
+        "14": ("mazowieckie", "330"),
+        "16": ("opolskie", "1833"),
+        "18": ("podkarpackie", "332"),
+        "20": ("podlaskie", "335"),
+        "22": ("pomorskie", "336"),
+        "24": ("slaskie", "238"),
+        "26": ("swietokrzyskie", "370"),
+        "28": ("warminsko_mazurskie", "341"),
+        "30": ("wielkopolskie", "308"),
+        "32": ("zachodniopomorskie", "339")
+    }
     #loop for create for each month data from solar radiation vector
     for index, month in enumerate(months, start=1):
         #paths
-        input_support_file = os.path.join(base_output_path, f"solar_radiation_vector_{month}.shp")
-        output_support_file = os.path.join(support_folder,f"solar_radiation_vector_{month}.shp")
+        input_support_file = os.path.join(base_output_path, f"solar_radiation_vector_{province}_{month}.shp")
+        output_support_file = os.path.join(support_folder,f"solar_radiation_vector_{province}_{month}.shp")
 
 
         #intersection photovoltaic vector area with solar radiation data
@@ -471,16 +491,16 @@ def solar_radiation_photovoltaic_area(base_output_path,photovoltaic_area_path,ou
         #rename step
         field_to_rename = 'Solar_surf'
         new_name = f"{month}"
-        file_to_rename = f"solar_radiation_vector_{month}.shp"
-        output_file_name_rename = f"solar_radiation_{month}_rename.shp"
+        file_to_rename = f"solar_radiation_vector_{province}_{month}.shp"
+        output_file_name_rename = f"solar_radiation_{province}_{month}_rename.shp"
 
         #function
         rename_column(base_output_path=support_folder, file_to_rename=file_to_rename, field_to_rename=field_to_rename
                       ,new_name=new_name, output_file_name=output_file_name_rename)
 
         #create another files to stack all months to finaly file
-        input_support_file_index_2_12 = os.path.join(support_folder,f"solar_radiation_vector_{index - 1}.shp")
-        output_support_file_index = os.path.join(support_folder, f"solar_radiation_vector_{index}.shp")
+        input_support_file_index_2_12 = os.path.join(support_folder,f"solar_radiation_vector_{index - 1}_{province}.shp")
+        output_support_file_index = os.path.join(support_folder, f"solar_radiation_vector_{index}_{province}.shp")
         output_finally_file = os.path.join(base_output_path,output_file_name)
         output = os.path.join(support_folder,output_file_name_rename)
 
@@ -500,6 +520,105 @@ def solar_radiation_photovoltaic_area(base_output_path,photovoltaic_area_path,ou
             processing.run("native:joinattributestable",
                            {'INPUT': input_support_file_index_2_12
                             , 'FIELD': 'ID',
+                            'INPUT_2': output
+                               , 'FIELD_2': 'ID'
+                               , 'FIELDS_TO_COPY': [f"{month}"], 'METHOD': 1
+                               , 'DISCARD_NONMATCHING': True,
+                            'PREFIX': '',
+                            'OUTPUT': output_finally_file})
+        else:
+            processing.run("native:joinattributestable",
+                           {'INPUT': input_support_file_index_2_12
+                               , 'FIELD': 'ID',
+                            'INPUT_2': output
+                               , 'FIELD_2': 'ID'
+                               , 'FIELDS_TO_COPY': [f"{month}"], 'METHOD': 1
+                               , 'DISCARD_NONMATCHING': True,
+                            'PREFIX': '',
+                            'OUTPUT': output_support_file_index})
+
+
+def wind_speed_farm_area(base_output_path,wind_area_path,province,output_file_name):
+    import os
+
+    # create folder
+    support_folder = os.path.join(base_output_path, "support_wind_speed_vector")
+    create_directory_if_not_exists(support_folder)
+
+    # months list
+    months = [
+        "january", "february", "march", "april",
+        "may", "june", "july", "august",
+        "september", "october", "november", "december"
+    ]
+
+    provinces = {
+        "02": ("dolnoslaskie", "337"),
+        "04": ("kujawsko_pomorskie", "994"),
+        "06": ("lubelskie", "3700"),
+        "08": ("lubuskie", "333"),
+        "10": ("lodzkie", "340"),
+        "12": ("malopolskie", "283"),
+        "14": ("mazowieckie", "330"),
+        "16": ("opolskie", "1833"),
+        "18": ("podkarpackie", "332"),
+        "20": ("podlaskie", "335"),
+        "22": ("pomorskie", "336"),
+        "24": ("slaskie", "238"),
+        "26": ("swietokrzyskie", "370"),
+        "28": ("warminsko_mazurskie", "341"),
+        "30": ("wielkopolskie", "308"),
+        "32": ("zachodniopomorskie", "339")
+    }
+    # loop for create for each month data from solar radiation vector
+    for index, month in enumerate(months, start=1):
+        # paths
+        input_support_file = os.path.join(base_output_path, f"wind_speed_vector_{province}_{month}.shp")
+        output_support_file = os.path.join(support_folder, f"wind_speed_vector_{province}_{month}.shp")
+
+        # intersection photovoltaic vector area with solar radiation data
+        processing.run("native:intersection"
+                       , {'INPUT': wind_area_path
+                           , 'OVERLAY': input_support_file
+                           , 'INPUT_FIELDS': []
+                           , 'OVERLAY_FIELDS': ['Wind_speed']
+                           , 'OVERLAY_FIELDS_PREFIX': ''
+                           , 'OUTPUT': output_support_file
+                           , 'GRID_SIZE': None})
+
+        # rename step
+        field_to_rename = 'Wind_speed'
+        new_name = f"{month}"
+        file_to_rename = f"wind_speed_vector_{province}_{month}.shp"
+        output_file_name_rename = f"wind_speed_vector_{province}_{month}_rename.shp"
+
+        # function
+        rename_column(base_output_path=support_folder, file_to_rename=file_to_rename, field_to_rename=field_to_rename
+                      , new_name=new_name, output_file_name=output_file_name_rename)
+
+        # create another files to stack all months to finaly file
+        input_support_file_index_2_12 = os.path.join(support_folder,
+                                                     f"wind_speed_vector_{index - 1}_{province}.shp")
+        output_support_file_index = os.path.join(support_folder, f"wind_speed_vector_{index}_{province}.shp")
+        output_finally_file = os.path.join(base_output_path, output_file_name)
+        output = os.path.join(support_folder, output_file_name_rename)
+
+        # conditions to select right first file, create support file and create finaly file
+        if index == 1:
+            processing.run("native:joinattributestable",
+                           {'INPUT': wind_area_path
+                               , 'FIELD': 'ID',
+                            'INPUT_2': output
+                               , 'FIELD_2': 'ID'
+                               , 'FIELDS_TO_COPY': [f"{month}"], 'METHOD': 1
+                               , 'DISCARD_NONMATCHING': True,
+                            'PREFIX': '',
+                            'OUTPUT': output_support_file_index})
+
+        elif index == 12:
+            processing.run("native:joinattributestable",
+                           {'INPUT': input_support_file_index_2_12
+                               , 'FIELD': 'ID',
                             'INPUT_2': output
                                , 'FIELD_2': 'ID'
                                , 'FIELDS_TO_COPY': [f"{month}"], 'METHOD': 1
