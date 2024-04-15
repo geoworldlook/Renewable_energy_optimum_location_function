@@ -18,7 +18,7 @@ conn = psycopg2.connect(
     , port=mysql['port']
 )
 
-# %%
+# %
 # list of provinces in Poland
 provinces = [
     "dolnoslaskie"
