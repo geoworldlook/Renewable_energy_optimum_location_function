@@ -1,91 +1,87 @@
-# Path to folder with modules
 import sys
-sys.path.append('D:\GEOWORLDLOOK\OZE\Renewable_energy_optimum_location')
-from Renewable_energy_optimum_location_function import *
 import os
 import processing
+from Renewable_energy_optimum_location_function import create_directory_if_not_exists, buffer, process_sunlight_data, process_tif_files, wind_speed_farm_area
 
-base_input_path = "D:/GEOWORLDLOOK/OZE/PILOT/Data"
-base_output_path = "D:/GEOWORLDLOOK/OZE/PILOT/Step_4_wind_speed_vector/wind_speed_vector"
-create_directory_if_not_exists(base_output_path)
+sys.path.append('D:/GEOWORLDLOOK/OZE/Renewable_energy_optimum_location')
 
-#1 Cut sunlight data base on mask for each month
-months = [
-    "january", "february", "march", "april",
-    "may", "june", "july", "august",
-    "september", "october", "november", "december"
+def process_wind_speed_for_province(province_code, province_name, mask_number, base_input_path, base_output_path, months, distance=1):
+    """
+    Process wind speed data for a given province.
+
+    Args:
+        province_code (str): The code of the province.
+        province_name (str): The name of the province.
+        mask_number (str): The identifier number for the province mask.
+        base_input_path (str): The base path where input data is located.
+        base_output_path (str): The base path where output data will be saved.
+        months (list): List of months to process wind speed data for.
+        distance (int, optional): Buffer distance. Defaults to 1.
+
+    Returns:
+        None
+    """
+    # Create buffer for shape to cut
+    mask_shapefile = os.path.join(base_input_path, f"MASK_TO_CUT/{province_name}.shp")
+    buffer_output_directory = os.path.join(base_output_path, "MASK_TO_CUT_BUFFER")
+    create_directory_if_not_exists(buffer_output_directory)
+
+    buffer_output_file = os.path.join(buffer_output_directory, f"{province_name}_BUFFER.shp")
+    buffer(base_output_path=base_output_path, input_path=mask_shapefile, output_file=buffer_output_file, distance=distance)
+
+    # Define input and output folders for wind speed data
+    wind_input_folder = os.path.join(base_input_path, "MEAN_WIND_SPEED")
+    wind_output_folder = os.path.join(base_output_path, "CLIP_WIND_SPEED")
+    create_directory_if_not_exists(wind_output_folder)
+
+    # Process wind speed data for each month
+    process_sunlight_data(months=months, input_folder=wind_input_folder, output_folder=wind_output_folder, mask_shapefile=buffer_output_file)
+
+    # Convert wind speed raster data to vector format
+    wind_speed_vector_output = f"wind_speed_vector_{province_name}"
+    process_tif_files(base_input_path=wind_output_folder, base_output_path=base_output_path,
+                      output_file_name=wind_speed_vector_output, field_name="Wind_speed", months=months)
+
+    # Combine wind speed data with wind farm area for the province
+    wind_farm_area_path = os.path.join(base_input_path, f"Step_2_Wind_Farm/windfarm_area_{province_name}.shp")
+    wind_speed_vector_file = f"wind_speed_wind_farm_{province_name}.shp"
+    wind_speed_farm_area(base_output_path=base_output_path, wind_area_path=wind_farm_area_path, province=province_name,
+                         output_file_name=wind_speed_vector_file)
+
+
+def main():
+    base_input_path = "D:/GEOWORLDLOOK/OZE/PILOT/Data"
+    base_output_path = "D:/GEOWORLDLOOK/OZE/PILOT/Step_4_wind_speed_vector/wind_speed_vector"
+    create_directory_if_not_exists(base_output_path)
+
+    months = [
+        "january", "february", "march", "april",
+        "may", "june", "july", "august",
+        "september", "october", "november", "december"
     ]
 
-provinces = {
-    "02":("dolnoslaskie", "337"),
-    "04":("kujawsko_pomorskie", "994"),
-    "06":("lubelskie", "3700"),
-    "08": ("lubuskie", "333"),
-    "10":("lodzkie", "340"),
-    "12":("malopolskie", "283"),
-    "14":("mazowieckie", "330"),
-    "16":("opolskie", "1833"),
-    "18":("podkarpackie", "332"),
-    "20":("podlaskie", "335"),
-    "22":("pomorskie", "336"),
-    "24":("slaskie", "238"),
-    "26":("swietokrzyskie", "370"),
-    "28":("warminsko_mazurskie", "341"),
-    "30":("wielkopolskie", "308"),
-    "32":("zachodniopomorskie", "339")
-}
+    provinces = {
+        "02": ("dolnoslaskie", "337"),
+        "04": ("kujawsko_pomorskie", "994"),
+        "06": ("lubelskie", "3700"),
+        "08": ("lubuskie", "333"),
+        "10": ("lodzkie", "340"),
+        "12": ("malopolskie", "283"),
+        "14": ("mazowieckie", "330"),
+        "16": ("opolskie", "1833"),
+        "18": ("podkarpackie", "332"),
+        "20": ("podlaskie", "335"),
+        "22": ("pomorskie", "336"),
+        "24": ("slaskie", "238"),
+        "26": ("swietokrzyskie", "370"),
+        "28": ("warminsko_mazurskie", "341"),
+        "30": ("wielkopolskie", "308"),
+        "32": ("zachodniopomorskie", "339")
+    }
 
-for key,(province,number) in provinces.items():
-
-
-    #create buffor to shape to cut, beacause solar radiation vector data don't cover whole area
-    distance = 1
-    mask_shapefile = base_input_path + f"/MASK_TO_CUT/{province}.shp"
-
-    output_file_buffer_directory = os.path.join(base_output_path, "MASK_TO_CUT_BUFFER")
-    create_directory_if_not_exists(output_file_buffer_directory)
-
-    output_file_buffer = os.path.join(output_file_buffer_directory, f"{province}_BUFFOR.shp")
-
-    buffer(base_output_path = base_output_path, input_path = mask_shapefile, output_file=output_file_buffer,distance=distance)
+    for province_code, (province_name, mask_number) in provinces.items():
+        process_wind_speed_for_province(province_code, province_name, mask_number, base_input_path, base_output_path, months)
 
 
-    # Paths to the input and output data folders
-
-
-    input_folder = base_input_path + "/MEAN_WIND_SPEED/"
-    output_folder = base_output_path + "/CLIP_WIND_SPEED"
-
-
-    # Process sunlight data
-    process_sunlight_data(months = months, input_folder= input_folder, output_folder = output_folder, mask_shapefile = output_file_buffer)
-
-    #2 Change raster to vector
-    output_file_name = f"wind_speed_vector_{province}"
-    field_name = "Wind_speed"
-    process_tif_files(base_input_path = output_folder ,
-    base_output_path = base_output_path , output_file_name =output_file_name , field_name = field_name, months = months)
-
-
-    #3 Create solar radiation to photovoltaic area each month
-
-    # Path to folder with modules
-    #base path to input files
-    base_input_path = "D:/GEOWORLDLOOK/OZE/PILOT/Data/"
-
-
-    #path to data from step 2
-    wind_area_path = f"D:/GEOWORLDLOOK/OZE/PILOT/Step_2_Wind_Farm/windfarm_area_{province}.shp"
-
-    #folder to step 4
-    solar_radiation_vector_path = "Step_4_wind_speed_vector"
-
-    #final output file name with photovoltaic area and solar radiation for each month
-    wind_speed_vector_file = f"wind_speed_area_{province}.shp"
-    output_file_name = f"wind_speed_wind_farm_{province}.shp"
-
-    wind_speed_farm_area(base_output_path = base_output_path, wind_area_path = wind_area_path, province = province
-                                      ,output_file_name = wind_speed_vector_file)
-
-
-
+if __name__ == "__main__":
+    main()
